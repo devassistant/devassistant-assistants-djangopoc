@@ -1,0 +1,110 @@
+fullname: Django
+description: 'Django assistant will help you create a basic Django project and install its dependencies.'
+
+dependencies:
+- rpm: [python-virtualenv, docker-io]
+
+args:
+  name:
+    use: common_args
+
+  github:
+    use: common_args
+
+  django:
+    flags: [--django]
+    help: Version of Django to use, e.g. 1.7.1
+    default: "latest"
+
+files:
+  gitignore: &gitignore
+    source: .gitignore
+  dockerfile: &dockerfile
+    source: Dockerfile
+
+run:
+- setup_project_dir:
+    from: $name
+    on_existing: fail
+    create_topdir: False
+
+- cl: cd "$contdir"
+
+# kickstart the project and cd to it
+- use: self.run_startproject
+- cl: cd "$topdir"
+
+# modify settings, create dockerfiles and .devassistant file
+- use: self.run_modify_settings
+- use: self.run_create_dockerfiles
+- dda_c: .
+
+# SCM related stuff
+- cl: cp *gitignore .
+- use: git_init_add_commit.run
+- if defined $github:
+  - github: create_and_push
+
+- log_e: foo
+# actually create docker images
+- $docker_image~:
+  - docker_build: .
+
+# print instructions for user
+- log_i: 'Django project $topdir in $contdir has been created.'
+- if not $docker_image:
+  - log_i: Docker image failed to build, you can try building it again as part of development process.
+  - log_i: 'To build an image, start a container and mount source code in it, switch to project dir and use'
+  - log_i: "TODO: da mod docker develop"
+- else:
+  - log_i: 'To start a container and mount source code in it, switch to project dir and use'
+  - log_i: 'da mod docker develop --reuse-image $docker_image'
+- log_i: 'Then access http://{printed_ip_address}:8000 in your browser.'
+- log_i: 'For more information about Django project visit https://www.djangoproject.com'
+
+
+run_startproject:
+- cl: virtualenv "$topdir"
+- cl: cd "$topdir"
+- log_i: 'Installing Django into virtual environment ...'
+- $djangoinst: django
+- if $( [ "$django" != "latest" ] ):
+  - log_i: asdasdasd
+  - $djangoinst: "$djangoinst==$django"
+- cl_i: source bin/activate && pip install "$djangoinst"
+
+# create the project using proper form of django-admin
+- log_i: 'Creating Django project $topdir in $contdir ...'
+- cl: source bin/activate && django-admin.py startproject "$topdir"
+- cl: echo django==`source bin/activate && django-admin.py --version` > "$topdir/requirements.txt"
+
+# get rid of virtualenv, move all stuff from $topdir to current dir to delete the extra
+#  subdirectory level created by virtualenv
+- cl: find . -mindepth 1 -maxdepth 1 -not -regex './${topdir}' | xargs rm -r
+- cl: mv $topdir tmp-$topdir
+- cl: mv tmp-$topdir/* .
+- cl: rmdir tmp-$topdir
+
+- cl: cd ..
+
+run_modify_settings:
+- cl: chmod +x manage.py
+- $settings: "$topdir/settings.py"
+
+# new versions of Django (>= 1.6) already have this stuff done
+- if not $(grep BASE_DIR "$settings"):
+  # make modifications to settings.py so that project can be run immediately
+  - cl: sed -i "s|django.db.backends.|django.db.backends.sqlite3|" "$settings"
+  # \(.\) is workaround for ":", which cannot be here because it would mean yaml error
+  - cl: sed -i "1i\import os\n" "$settings"
+  - cl: sed -i "2i\BASE_DIR = os.path.join(os.path.dirname(__file__), '..')\n" "$settings"
+  - cl: sed -i "s|'NAME'\(.\) ''|'NAME'\1 os.path.join(BASE_DIR, 'db.sqlite3')|" "$settings"
+
+
+run_create_dockerfiles:
+- jinja_render:
+    template: *dockerfile
+    destination: .
+    data:
+      topdir: $topdir
+      venv: $venv

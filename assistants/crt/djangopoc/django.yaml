@@ -23,6 +23,8 @@ files:
     source: Dockerfile
   wsgiconf: &wsgiconf
     source: wsgi.conf
+  database: &database
+    source: database/
 
 run:
 - setup_project_dir:
@@ -112,9 +114,18 @@ run_modify_settings:
 
 
 run_create_dockerfiles:
+# webserver Dockerfile
 - jinja_render:
     template: *dockerfile
     destination: .
     data:
       topdir: $topdir
       venv: $venv
+
+- cl: mkdir database
+# DB server Dockerfile and helper script
+- jinja_render_dir:
+    template: *database
+    destination: ./database
+    data:
+      name: $topdir

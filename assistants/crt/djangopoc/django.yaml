@@ -21,12 +21,12 @@ files:
     source: .gitignore
   dockerfile: &dockerfile
     source: Dockerfile
+  wsgiconf: &wsgiconf
+    source: wsgi.conf
 
 run:
 - setup_project_dir:
     from: $name
-    on_existing: fail
-    create_topdir: False
 
 - cl: cd "$contdir"
 
@@ -64,9 +64,10 @@ run:
 
 
 run_startproject:
+# TODO: limit version to be >= 1.6, since that already has wsgi.py?
 - cl: virtualenv "$topdir"
 - cl: cd "$topdir"
-- log_i: 'Installing Django into virtual environment ...'
+- log_i: 'Creating temporary virtualenv ...'
 - $djangoinst: django
 - if $( [ "$django" != "latest" ] ):
   - log_i: asdasdasd
@@ -76,7 +77,16 @@ run_startproject:
 # create the project using proper form of django-admin
 - log_i: 'Creating Django project $topdir in $contdir ...'
 - cl: source bin/activate && django-admin.py startproject "$topdir"
-- cl: echo django==`source bin/activate && django-admin.py --version` > "$topdir/requirements.txt"
+- cl: echo "psycopg2" > "$topdir/requirements.txt"
+- cl: echo django==`source bin/activate && django-admin.py --version` >> "$topdir/requirements.txt"
+
+# render wsgi conf file
+- jinja_render:
+    template: *wsgiconf
+    destination: $topdir
+    output: $topdir.conf
+    data:
+      topdir: $topdir
 
 # get rid of virtualenv, move all stuff from $topdir to current dir to delete the extra
 #  subdirectory level created by virtualenv

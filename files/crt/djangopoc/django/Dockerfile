@@ -1,12 +1,13 @@
-FROM fedora
+FROM centos:centos7
 
 WORKDIR /srv
-RUN yum install python-virtualenv && virtualenv "{{ topdir }}"
+RUN yum -y install python-virtualenv httpd mod_wsgi postgresql-devel gcc && virtualenv "{{ topdir }}"
 
 WORKDIR /srv/{{ topdir }}
 ADD . /srv/{{ topdir }}/{{ topdir }}
 RUN source bin/activate && pip install -r "{{ topdir }}/requirements.txt"
+RUN sed -i "s|@PATHS@|`find $(pwd) -type d -path '*lib/*/site-packages'`|" {{ topdir }}/{{ topdir }}.conf
+RUN cp {{ topdir }}/{{ topdir }}.conf /etc/httpd/conf.d
 
-EXPOSE 8000
-CMD source /srv/{{ topdir }}/bin/activate && \
- /srv/{{ topdir }}/{{ topdir }}/manage.py runserver 0.0.0.0:8000
+EXPOSE 80
+CMD /usr/sbin/httpd -DFOREGROUND

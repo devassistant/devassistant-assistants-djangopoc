@@ -49,21 +49,9 @@ run:
 - if defined $github:
   - github: create_and_push
 
-- log_e: foo
-# actually create docker images
-- $docker_image~:
-  - docker_build: .
-
 # print instructions for user
+# TODO: print some instructions about how to build images/start developing
 - log_i: 'Django project $topdir in $contdir has been created.'
-- if not $docker_image:
-  - log_i: Docker image failed to build, you can try building it again as part of development process.
-  - log_i: 'To build an image, start a container and mount source code in it, switch to project dir and use'
-  - log_i: "TODO: da mod docker develop"
-- else:
-  - log_i: 'To start a container and mount source code in it, switch to project dir and use'
-  - log_i: 'da mod docker develop --reuse-image $docker_image'
-- log_i: 'Then access http://{printed_ip_address}:8000 in your browser.'
 - log_i: 'For more information about Django project visit https://www.djangoproject.com'
 
 

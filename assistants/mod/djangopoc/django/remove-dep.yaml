@@ -1,0 +1,25 @@
+description: Remove a dependency of your Django POC project.
+
+args:
+  path:
+    use: common_args
+  name:
+    flags: [name]
+    help: Name of dependency to remove.
+
+pre_run:
+- if $path:
+  - cl: cd $path
+- dda_r: .
+
+run:
+- log_e: Unknow project type $project_type.
+
+run_djangopoc_django:
+- $dep_present, $precise_line~:
+  - use: djangopoc.run_find_dep_in_requirements
+- if not $dep_present:
+  - log_e: Dependency ${name} is not in requirements.txt.
+- cl: sed -i "/^${precise_line}$/d" requirements.txt
+- log_i: Successfully removed "${name}" from dependencies.
+- log_i: TODO - tell the user he has to rebuild the container.

@@ -1,0 +1,12 @@
+run_find_dep_in_requirements:
+# we need to match the dep name, but we can't match "foo", if there's "foobar" or "foo-bar"
+#   also, stop after first match, in case of erroneous requirements
+- $result, $precise_line~: $(grep -m 1 "^${name}\([[:space:]=<>!]\|$\)" requirements.txt)
+
+run_verify_version_spec:
+- if $version_spec:
+  - $result~: $(echo "${version_spec}" | grep "[<>=!][0-9].*")
+  - if not $result:
+    # TODO: perhaps provide info on what the version specifier should look like.
+    - log_e: Version specifier "${version_spec}" is not valid.
+# else everything is fine, since version_spec is empty string

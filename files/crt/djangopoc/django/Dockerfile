@@ -10,4 +10,4 @@ RUN sed -i "s|@PATHS@|`find $(pwd) -type d -path '*lib/*/site-packages'`|" {{ to
 RUN cp {{ topdir }}/{{ topdir }}.conf /etc/httpd/conf.d
 
 EXPOSE 80
-CMD /usr/sbin/httpd -DFOREGROUND
+CMD source bin/activate && {{ topdir }}/manage.py syncdb --noinput && /usr/sbin/httpd -DFOREGROUND

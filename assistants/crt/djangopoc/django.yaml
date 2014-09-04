@@ -27,6 +27,8 @@ files:
     source: database/
 
 run:
+# TODO: limit version to be >= 1.6, since that already has wsgi.py
+# (if < 1.6, this will fail *after* virtualenv is created, we should do better
 - setup_project_dir:
     from: $name
 
@@ -66,7 +68,6 @@ run:
 
 
 run_startproject:
-# TODO: limit version to be >= 1.6, since that already has wsgi.py?
 - cl: virtualenv "$topdir"
 - cl: cd "$topdir"
 - log_i: 'Creating temporary virtualenv ...'
@@ -103,15 +104,22 @@ run_modify_settings:
 - cl: chmod +x manage.py
 - $settings: "$topdir/settings.py"
 
-# new versions of Django (>= 1.6) already have this stuff done
+# for now, we only support new versions of Django (>= 1.6)
 - if not $(grep BASE_DIR "$settings"):
-  # make modifications to settings.py so that project can be run immediately
-  - cl: sed -i "s|django.db.backends.|django.db.backends.sqlite3|" "$settings"
-  # \(.\) is workaround for ":", which cannot be here because it would mean yaml error
-  - cl: sed -i "1i\import os\n" "$settings"
-  - cl: sed -i "2i\BASE_DIR = os.path.join(os.path.dirname(__file__), '..')\n" "$settings"
-  - cl: sed -i "s|'NAME'\(.\) ''|'NAME'\1 os.path.join(BASE_DIR, 'db.sqlite3')|" "$settings"
-
+  - log_e: This assistant only works with Django >= 1.6
+- cl: |
+    sed -i "$topdir/settings.py" -f - <<-EOF
+    /^DATABASES =/,/^}/ c DATABASES = {\n\
+        'default': {\n\
+            'ENGINE': 'django.db.backends.postgresql_psycopg2',\n\
+            'NAME': '$topdir',\n\
+            'USER': '$topdir',\n\
+            'PASSWORD': 'password',\n\
+            'HOST': 'db',\n\
+            'PORT': '' # empty for default 5432\n\
+        }\n\
+    }
+    EOF
 
 run_create_dockerfiles:
 # webserver Dockerfile
@@ -122,8 +130,8 @@ run_create_dockerfiles:
       topdir: $topdir
       venv: $venv
 
-- cl: mkdir database
 # DB server Dockerfile and helper script
+- cl: mkdir database
 - jinja_render_dir:
     template: *database
     destination: ./database

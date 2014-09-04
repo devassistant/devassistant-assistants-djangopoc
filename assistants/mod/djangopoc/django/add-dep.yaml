@@ -1,0 +1,29 @@
+description: Add a new dependency to your Django POC project.
+
+args:
+  path:
+    use: common_args
+  name:
+    flags: [name]
+    help: Name of dependency to add.
+  version_spec:
+    flags: [-v, --version-spec]
+    help: Version specifier, e.g. "==1.2.3"
+    default: ""
+
+pre_run:
+- if $path:
+  - cl: cd $path
+- dda_r: .
+
+run:
+- log_e: Unknow project type $project_type.
+
+run_djangopoc_django:
+- $already_there, $_~: $(grep "\b${name}\b" requirements.txt)
+- if $already_there:
+  - log_e: Dependency ${name} is already added in requirements.txt.
+- $dep_string: ${name}${version_spec}
+- cl: echo "${dep_string}" >> requirements.txt
+- log_i: Successfully added "${dep_string}" as a dependency.
+- log_i: TODO - tell the user he has to rebuild the container.

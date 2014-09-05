@@ -25,14 +25,20 @@ files:
     source: wsgi.conf
   database: &database
     source: database/
+  figyml: &figyml
+    source: fig.yml
 
 run:
 # TODO: limit version to be >= 1.6, since that already has wsgi.py
 # (if < 1.6, this will fail *after* virtualenv is created, we should do better
 - setup_project_dir:
     from: $name
+    create_topdir: False
+    topdir_normalized_var: topdir
 
 - cl: cd "$contdir"
+- if $(ls $topdir-virtualenv):
+  - log_e: $topdir-virtualenv exists TODO better message
 
 # kickstart the project and cd to it
 - use: self.run_startproject
@@ -56,20 +62,21 @@ run:
 
 
 run_startproject:
-- cl: virtualenv "$topdir"
-- cl: cd "$topdir"
-- log_i: 'Creating temporary virtualenv ...'
+# create virtualenv in a separate directory TODO maybe use virtualenvwrapper?
+- log_i: 'Creating virtualenv in $contdir/$topdir-virtualenv ...'
+- cl: virtualenv "$topdir-virtualenv"
+- $activate: source "$topdir-virtualenv/bin/activate"
 - $djangoinst: django
 - if $( [ "$django" != "latest" ] ):
-  - log_i: asdasdasd
   - $djangoinst: "$djangoinst==$django"
-- cl_i: source bin/activate && pip install "$djangoinst"
+- cl_i: $activate && pip install "$djangoinst"
 
 # create the project using proper form of django-admin
-- log_i: 'Creating Django project $topdir in $contdir ...'
-- cl: source bin/activate && django-admin.py startproject "$topdir"
+- log_i: 'Creating a new Django project ...'
+- cl: $activate && django-admin.py startproject "$topdir"
+
 - cl: echo "psycopg2" > "$topdir/requirements.txt"
-- cl: echo django==`source bin/activate && django-admin.py --version` >> "$topdir/requirements.txt"
+- cl: echo django==`$activate && django-admin.py --version` >> "$topdir/requirements.txt"
 
 # render wsgi conf file
 - jinja_render:
@@ -79,14 +86,9 @@ run_startproject:
     data:
       topdir: $topdir
 
-# get rid of virtualenv, move all stuff from $topdir to current dir to delete the extra
-#  subdirectory level created by virtualenv
-- cl: find . -mindepth 1 -maxdepth 1 -not -regex './${topdir}' | xargs rm -r
-- cl: mv $topdir tmp-$topdir
-- cl: mv tmp-$topdir/* .
-- cl: rmdir tmp-$topdir
+# add a fig.yml file
+- cl: cp *figyml "$topdir/"
 
-- cl: cd ..
 
 run_modify_settings:
 - cl: chmod +x manage.py

@@ -10,7 +10,7 @@ args:
 
   recreate:
     flags: [-r, --recreate]
-    help: Recreate Docker images before running containers.
+    help: Recreate Docker images and containers before running.
     action: store_true
     default: False
 
@@ -25,32 +25,41 @@ run:
 run_djangopoc_django:
 # TODO: remove when fig is in Fedora
 - $fig: ~~/.local/bin/fig
+
 # first, stop running containers
 - log_i: Stopping application containers ...
 - cl: $fig stop
 
-# if recreating, then first just build images, then start containers separately
+# rebuild images if requested
 - if $recreate:
-  - log_i: Rebuilding application images, this might take a while ...
-  - $build_res, $build_out~: $($fig build)
+  - log_i: Recreating Docker images, this will take a while ...
+  - $build_res, $build_out~:
+    - cl_ip: $fig build
   - if not $build_res:
-    - log_e: Failed to rebuild images; fig says "$build_out"
+    - log_e: Failed to rebuild Docker images, exiting ...
+
+# actually run containers (possibly recreate them)
+- $run_cmd: $fig up -d
+- if not $recreate:
+  - log_i: If this is the first time you're running this assistant, Docker images will be built.
+  - log_i: This might take a while ...
+  - $run_cmd: $run_cmd --no-recreate
 
 - log_i: Starting application containers ...
-
-- $cmd: $fig up -d
-- if not $recreate:
-  - $cmd: $cmd --no-recreate
-
 - $fig_res, $fig_out~:
-  - cl_ip: $cmd
+  - cl_ip: $run_cmd
 - if not $fig_res:
   - log_e: Failed to start containers, fig says "$fig_out"
 
 - log_i: You can now go to http://localhost to see your running application.
 
-- $containers: $(echo "$fig_out" | grep -e "^Starting\s\+" -e "^Creating\s\+")
-- $containers~: $(echo "$fig_out" | sed -e "s|^Starting\s\+||" -e "s|^Creating\s\+||" -e "s|\.\.\.||")
+# get created container names and attach to their output
+- $containers~:
+  - cl: |
+      cat -<<SOMERANDOMEOF
+        $fig_out
+      SOMERANDOMEOF | grep -e "^Starting\s\+" -e "^Creating\s\+" -e "^Recreating\s\+"
+- $containers~: $(echo "$fig_out" | sed -e "s|^Starting\s\+||" -e "s|^Creating\s\+||" -e "s|^Recreating\s\+||" -e "s|\.\.\.||")
 - $containers_nice~: $(echo "$containers" | tr "\n" " ")
 - log_i: "Attaching to output of containers: $containers_nice ..."
 - docker_attach: $containers

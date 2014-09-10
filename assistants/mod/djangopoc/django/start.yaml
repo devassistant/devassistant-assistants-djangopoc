@@ -1,0 +1,56 @@
+fullname: Start containers
+description: Start containers so that you can develop right away.
+
+dependencies:
+- pip: [fig]
+
+args:
+  path:
+    use: common_args
+
+  recreate:
+    flags: [-r, --recreate]
+    help: Recreate Docker images before running containers.
+    action: store_true
+    default: False
+
+pre_run:
+- if $path:
+  - cl: cd $path
+- dda_r: .
+
+run:
+- log_e: Unknow project type $project_type
+
+run_djangopoc_django:
+# TODO: remove when fig is in Fedora
+- $fig: ~~/.local/bin/fig
+# first, stop running containers
+- log_i: Stopping application containers ...
+- cl: $fig stop
+
+# if recreating, then first just build images, then start containers separately
+- if $recreate:
+  - log_i: Rebuilding application images, this might take a while ...
+  - $build_res, $build_out~: $($fig build)
+  - if not $build_res:
+    - log_e: Failed to rebuild images; fig says "$build_out"
+
+- log_i: Starting application containers ...
+
+- $cmd: $fig up -d
+- if not $recreate:
+  - $cmd: $cmd --no-recreate
+
+- $fig_res, $fig_out~:
+  - cl_ip: $cmd
+- if not $fig_res:
+  - log_e: Failed to start containers, fig says "$fig_out"
+
+- log_i: You can now go to http://localhost to see your running application.
+
+- $containers: $(echo "$fig_out" | grep -e "^Starting\s\+" -e "^Creating\s\+")
+- $containers~: $(echo "$fig_out" | sed -e "s|^Starting\s\+||" -e "s|^Creating\s\+||" -e "s|\.\.\.||")
+- $containers_nice~: $(echo "$containers" | tr "\n" " ")
+- log_i: "Attaching to output of containers: $containers_nice ..."
+- docker_attach: $containers

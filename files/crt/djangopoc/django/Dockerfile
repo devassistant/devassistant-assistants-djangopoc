@@ -10,4 +10,6 @@ RUN sed -i "s|@PATHS@|`find $(pwd) -type d -path '*lib/*/site-packages'`|" {{ to
 RUN cp {{ topdir }}/{{ topdir }}.conf /etc/httpd/conf.d
 
 EXPOSE 80
-CMD source {{ topdir }}-virtualenv/bin/activate && {{ topdir }}/manage.py syncdb --noinput && /usr/sbin/httpd -DFOREGROUND
+# activate virtualenv, sync database, possibly remove leftover files from previous apache run
+#  and then actually start apache
+CMD source {{ topdir }}-virtualenv/bin/activate && {{ topdir }}/manage.py syncdb --noinput && rm -rf /run/httpd/* && /usr/sbin/httpd -DFOREGROUND

@@ -28,4 +28,4 @@ run_djangopoc_django:
 - $new_dep_string: ${name}${version_spec}
 - cl: sed -i "s|^${precise_line}$|${new_dep_string}|" requirements.txt
 - log_i: Successfully changed dependency from "${precise_line}" to "${new_dep_string}".
-- log_i: TODO - tell the user he has to rebuild the container.
+- use: djangopoc.run_rebuild_instructions

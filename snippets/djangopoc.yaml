@@ -10,3 +10,8 @@ run_verify_version_spec:
     # TODO: perhaps provide info on what the version specifier should look like.
     - log_e: Version specifier "${version_spec}" is not valid.
 # else everything is fine, since version_spec is empty string
+
+run_rebuild_instructions:
+- log_i: You need to rebuild images and containers.
+- log_i: "To do this, cd into application directory and run:"
+- log_i: da modify djangopoc django start --recreate

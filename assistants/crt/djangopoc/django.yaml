@@ -56,9 +56,10 @@ run:
   - github: create_and_push
 
 # print instructions for user
-# TODO: print some instructions about how to build images/start developing
 - log_i: 'Django project $topdir in $contdir has been created.'
-- log_i: 'For more information about Django project visit https://www.djangoproject.com'
+- log_i: 'To start development, cd into $contdir and use:'
+- log_i: 'da modify djangopoc django start'
+- log_i: 'This will build images and run containers in a proper way.'
 
 
 run_startproject:

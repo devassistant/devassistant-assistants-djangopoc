@@ -22,4 +22,4 @@ run_djangopoc_django:
   - log_e: Dependency ${name} is not in requirements.txt.
 - cl: sed -i "/^${precise_line}$/d" requirements.txt
 - log_i: Successfully removed "${name}" from dependencies.
-- log_i: TODO - tell the user he has to rebuild the container.
+- use: djangopoc.run_rebuild_instructions

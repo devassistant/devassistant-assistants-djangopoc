@@ -57,8 +57,8 @@ run:
 
 # print instructions for user
 - log_i: 'Django project $topdir in $contdir has been created.'
-- log_i: 'To start development, cd into $contdir and use:'
-- log_i: 'da modify djangopoc django start'
+- log_i: 'To start development, use:'
+- log_i: 'da modify djangopoc django start -p $contdir/$topdir'
 - log_i: 'This will build images and run containers in a proper way.'
 
 

@@ -49,17 +49,17 @@ run_djangopoc_django:
 - $fig_res, $fig_out~:
   - cl_ip: $run_cmd
 - if not $fig_res:
-  - log_e: Failed to start containers, fig says "$fig_out"
+  - log_e: Failed to start containers, see the above output for errors.
 
 - log_i: You can now go to http://localhost to see your running application.
 
 # get created container names and attach to their output
 - $containers~:
   - cl: |
-      cat -<<SOMERANDOMEOF
-        $fig_out
-      SOMERANDOMEOF | grep -e "^Starting\s\+" -e "^Creating\s\+" -e "^Recreating\s\+"
-- $containers~: $(echo "$fig_out" | sed -e "s|^Starting\s\+||" -e "s|^Creating\s\+||" -e "s|^Recreating\s\+||" -e "s|\.\.\.||")
+      cat -<<SOMERANDOMEOF | grep "^\s*\(Starting\|Creating\|Recreating\)\s\+.\+\.\.\."
+      $fig_out
+      SOMERANDOMEOF
+- $containers~: $(echo "$containers" | sed "s/^\s*\(Starting\|Creating\|Recreating\)\s\+\([^\. ]\+\)\s*\.\.\./\2/")
 - $containers_nice~: $(echo "$containers" | tr "\n" " ")
 - log_i: "Attaching to output of containers: $containers_nice ..."
 - docker_attach: $containers

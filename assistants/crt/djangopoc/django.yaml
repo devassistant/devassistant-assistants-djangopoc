@@ -38,7 +38,7 @@ run:
 
 - cl: cd "$contdir"
 - if $(ls $topdir-virtualenv):
-  - log_e: $topdir-virtualenv exists TODO better message
+  - log_e: $topdir-virtualenv directory already exists, can't proceed.
 
 # kickstart the project and cd to it
 - use: self.run_startproject

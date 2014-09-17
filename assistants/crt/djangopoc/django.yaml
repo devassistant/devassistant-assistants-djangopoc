@@ -37,8 +37,10 @@ run:
     topdir_normalized_var: topdir
 
 - cl: cd "$contdir"
+- if $(ls $topdir):
+  - log_e: Directory "$topdir" already exists, can't proceed.
 - if $(ls $topdir-virtualenv):
-  - log_e: $topdir-virtualenv directory already exists, can't proceed.
+  - log_e: Directory "$topdir-virtualenv" already exists, can't proceed.
 
 # kickstart the project and cd to it
 - use: self.run_startproject
@@ -48,6 +50,19 @@ run:
 - use: self.run_modify_settings
 - use: self.run_create_dockerfiles
 - dda_c: .
+
+# modify .devassistant file so that it installs correct deps and logs
+#  correct message when it's prepped
+#  TODO: when fig is in fedora, install it from RPM
+- dda_w:
+  - .
+  - dependencies:
+    - rpm: [docker-io]
+    - pip: [fig]
+    run:
+    - log_i: 'To build images and create and start containers, run:'
+    - $cwd~: $(pwd)
+    - log_i: 'da modify djangopoc django start -p $cwd'
 
 # SCM related stuff
 - cl: cp *gitignore .

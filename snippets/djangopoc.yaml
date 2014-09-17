@@ -7,7 +7,7 @@ run_verify_version_spec:
 - if $version_spec:
   - $result~: $(echo "${version_spec}" | grep "[<>=!][0-9].*")
   - if not $result:
-    - log_e: Version specifier "${version_spec}" is not valid, valid examples: "==1.2.3", "<=1.2.3".
+    - log_e: 'Version specifier "${version_spec}" is not valid, valid examples: "==1.2.3", "<=1.2.3".'
 # else everything is fine, since version_spec is empty string
 
 run_rebuild_instructions:

@@ -2,7 +2,7 @@ fullname: Django
 description: 'Django assistant will help you create a basic Django project and install its dependencies.'
 
 dependencies:
-- rpm: [python-virtualenv, docker-io]
+- rpm: [docker-io]
 
 args:
   name:
@@ -11,10 +11,12 @@ args:
   github:
     use: common_args
 
-  django:
-    flags: [--django]
-    help: Version of Django to use, e.g. 1.7.1
-    default: "latest"
+  version:
+    flags: [-v, --version]
+    choices: ["1.6", "1.7"]
+    help: Version of Django to use.
+    default: "1.7"
+    required: True
 
 files:
   gitignore: &gitignore
@@ -27,27 +29,26 @@ files:
     source: database/
   figyml: &figyml
     source: fig.yml
+# TODO: when adding new, we need to add a conditional to run_startproject, since
+#   there is no way to reference files dynamically (ATM)
+  dj16projtemplate: &dj16projtemplate
+    source: dj16projtemplate/
+  dj17projtemplate: &dj17projtemplate
+    source: dj17projtemplate/
+
 
 run:
-# TODO: limit version to be >= 1.6, since that already has wsgi.py
-# (if < 1.6, this will fail *after* virtualenv is created, we should do better
 - setup_project_dir:
     from: $name
-    create_topdir: False
     topdir_normalized_var: topdir
 
 - cl: cd "$contdir"
-- if $(ls $topdir):
-  - log_e: Directory "$topdir" already exists, can't proceed.
-- if $(ls $topdir-virtualenv):
-  - log_e: Directory "$topdir-virtualenv" already exists, can't proceed.
 
 # kickstart the project and cd to it
 - use: self.run_startproject
 - cl: cd "$topdir"
 
-# modify settings, create dockerfiles and .devassistant file
-- use: self.run_modify_settings
+# create dockerfiles and .devassistant file
 - use: self.run_create_dockerfiles
 - dda_c: .
 
@@ -78,21 +79,23 @@ run:
 
 
 run_startproject:
-# create virtualenv in a separate directory TODO maybe use virtualenvwrapper?
-- log_i: 'Creating virtualenv in $contdir/$topdir-virtualenv ...'
-- cl: virtualenv "$topdir-virtualenv"
-- $activate: source "$topdir-virtualenv/bin/activate"
-- $djangoinst: django
-- if $( [ "$django" != "latest" ] ):
-  - $djangoinst: "$djangoinst==$django"
-- cl_i: $activate && pip install "$djangoinst"
+# render the project source files template
+- $template: ""
+- $djappdir: $(echo "dj${version}projtemplate" | tr -d ".")
+- if $(["$version" == "1.6"]):
+  - $template: *dj16projtemplate
+- if $(["$version" == "1.7"]):
+  - $template: *dj17projtemplate
+- if not $template:
+  - log_e: Critical assistant error, template not selected in run_startproject.
 
-# create the project using proper form of django-admin
-- log_i: 'Creating a new Django project ...'
-- cl: $activate && django-admin.py startproject "$topdir"
-
-- cl: echo "psycopg2" > "$topdir/requirements.txt"
-- cl: echo django==`$activate && django-admin.py --version` >> "$topdir/requirements.txt"
+- jinja_render_dir:
+    template: $template
+    destination: $topdir
+    data:
+      topdir: $topdir
+# rename the $topdir/djXYprojtemplate directory to $topdir/$topdir
+- cl: mv "$topdir/$djappdir" "$topdir/$topdir"
 
 # render wsgi conf file
 - jinja_render:
@@ -105,27 +108,6 @@ run_startproject:
 # add a fig.yml file
 - cl: cp *figyml "$topdir/"
 
-
-run_modify_settings:
-- cl: chmod +x manage.py
-- $settings: "$topdir/settings.py"
-
-# for now, we only support new versions of Django (>= 1.6)
-- if not $(grep BASE_DIR "$settings"):
-  - log_e: This assistant only works with Django >= 1.6
-- cl: |
-    sed -i "$topdir/settings.py" -f - <<-EOF
-    /^DATABASES =/,/^}/ c DATABASES = {\n\
-        'default': {\n\
-            'ENGINE': 'django.db.backends.postgresql_psycopg2',\n\
-            'NAME': '$topdir',\n\
-            'USER': '$topdir',\n\
-            'PASSWORD': 'password',\n\
-            'HOST': 'db',\n\
-            'PORT': '' # empty for default 5432\n\
-        }\n\
-    }
-    EOF
 
 run_create_dockerfiles:
 # webserver Dockerfile

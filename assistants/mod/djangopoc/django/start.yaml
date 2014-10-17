@@ -2,7 +2,7 @@ fullname: Start containers
 description: Start containers so that you can develop right away.
 
 dependencies:
-- pip: [fig]
+- rpm: [docker, vagrant]
 
 args:
   path:

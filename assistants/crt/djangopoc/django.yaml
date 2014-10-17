@@ -27,8 +27,8 @@ files:
     source: wsgi.conf
   database: &database
     source: database/
-  figyml: &figyml
-    source: fig.yml
+  Vagrantfile: &Vagrantfile
+    source: Vagrantfile
 # TODO: when adding new, we need to add a conditional to run_startproject, since
 #   there is no way to reference files dynamically (ATM)
   dj16projtemplate: &dj16projtemplate
@@ -54,12 +54,11 @@ run:
 
 # modify .devassistant file so that it installs correct deps and logs
 #  correct message when it's prepped
-#  TODO: when fig is in fedora, install it from RPM
 - dda_w:
   - .
   - dependencies:
     - rpm: [docker-io]
-    - pip: [fig]
+    - pip: [vagrant]
     run:
     - log_i: 'To build images and create and start containers, run:'
     - $cwd~: $(pwd)
@@ -106,8 +105,12 @@ run_startproject:
     data:
       topdir: $topdir
 
-# add a fig.yml file
-- cl: cp *figyml "$topdir/"
+# render Vagrantfile
+- jinja_render:
+    template: *Vagrantfile
+    destination: $topdir
+    data:
+      topdir: $topdir
 
 
 run_create_dockerfiles:

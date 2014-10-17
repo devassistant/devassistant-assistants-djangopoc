@@ -1,0 +1,18 @@
+Vagrant.configure("2") do |config|
+  config.vm.define "{{ topdir }}_db" do |v|
+    v.vm.provider "docker" do |d|
+      d.build_dir = "database/"
+      d.name = "{{ topdir }}_db"
+    end
+  end
+
+  config.vm.define "{{ topdir }}_web" do |v|
+    v.vm.provider "docker" do |d|
+      d.build_dir = "."
+      d.ports = ["80:80"]
+      d.volumes = [Dir.pwd + ":/srv/{{ topdir }}"]
+      d.name = "{{ topdir }}_web"
+      d.link("{{ topdir }}_db:db")
+    end
+  end
+end

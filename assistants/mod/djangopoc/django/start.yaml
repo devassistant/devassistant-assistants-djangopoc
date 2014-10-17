@@ -10,7 +10,7 @@ args:
 
   recreate:
     flags: [-r, --recreate]
-    help: Recreate Docker images and containers before running.
+    help: Recreate Docker containers (and images, if needed) before running.
     action: store_true
     default: False
 
@@ -24,32 +24,29 @@ run:
 
 run_djangopoc_django:
 - docker_check_setup: ""
-# TODO: remove when fig is in Fedora
-- $fig: ~~/.local/bin/fig
+# temporary workaround for https://github.com/devassistant/devassistant/issues/289
+#   we need to set default provider to docker in case no other providers are installed (possible)
+- $VDP: VAGRANT_DEFAULT_PROVIDER=docker
 
 # first, stop running containers
-- log_i: Stopping application containers ...
-- cl: $fig stop
+- log_i: Stopping any previously created application containers ...
+# ignore failures when halting, since containers may not be running at all
+- cl: $VDP vagrant halt
 
 # rebuild images if requested
 - if $recreate:
+  - log_i: Destroying any previously built docker images and created containers ...
+  - cl: $VDP vagrant destroy -f
   - log_i: Recreating Docker images, this will take a while ...
-  - $build_res, $build_out~:
-    - cl_ip: $fig build
-  - if not $build_res:
-    - log_e: Failed to rebuild Docker images, exiting ...
+  - cl_i: $VDP vagrant reload
 
-# actually run containers (possibly recreate them)
-- $run_cmd: $fig up -d
+- log_i: Starting application containers ...
 - if not $recreate:
   - log_i: If this is the first time you're running this assistant, Docker images will be built.
   - log_i: This might take a while ...
-  - $run_cmd: $run_cmd --no-recreate
-
-- log_i: Starting application containers ...
-- $fig_res, $fig_out~:
-  - cl_ip: $run_cmd
-- if not $fig_res:
+- $vagrant_res, $vagrant_out~:
+  - cl_ip: $VDP vagrant up --provider=docker
+- if not $vagrant_res:
   - log_e: Failed to start containers, see the above output for errors.
 
 - log_i: You can now go to http://localhost to see your running application.
@@ -57,10 +54,10 @@ run_djangopoc_django:
 # get created container names and attach to their output
 - $containers~:
   - cl: |
-      cat -<<SOMERANDOMEOF | grep "^\s*\(Starting\|Creating\|Recreating\)\s\+.\+\.\.\."
-      $fig_out
+      cat -<<SOMERANDOMEOF | grep "^Bringing machine '[^']*'"
+      $vagrant_out
       SOMERANDOMEOF
-- $containers~: $(echo "$containers" | sed "s/^\s*\(Starting\|Creating\|Recreating\)\s\+\([^\. ]\+\)\s*\.\.\./\2/")
+- $containers~: $(echo "$containers" | sed "s/^Bringing machine '\([^']*\)'.*/\1/")
 - $containers_nice~: $(echo "$containers" | tr "\n" " ")
 - log_i: "Attaching to output of containers: $containers_nice ..."
 - docker_attach: $containers

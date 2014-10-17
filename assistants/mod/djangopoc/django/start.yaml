@@ -14,6 +14,12 @@ args:
     action: store_true
     default: False
 
+  keep_running:
+    flags: [-k, --keep-running]
+    help: Keep containers running at DevAssistant shutdown.
+    action: store_true
+    default: False
+
 pre_run:
 - if $path:
   - cl: cd $path
@@ -59,5 +65,10 @@ run_djangopoc_django:
       SOMERANDOMEOF
 - $containers~: $(echo "$containers" | sed "s/^Bringing machine '\([^']*\)'.*/\1/")
 - $containers_nice~: $(echo "$containers" | tr "\n" " ")
+- if not $keep_running:
+  - atexit:
+    - for $c word_in $containers_nice:
+      - log_i: Stopping container $c ...
+      - docker_stop: $c
 - log_i: "Attaching to output of containers: $containers_nice ..."
 - docker_attach: $containers

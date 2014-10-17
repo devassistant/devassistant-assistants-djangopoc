@@ -26,6 +26,8 @@ run_djangopoc_django:
 - if $already_there:
   - log_e: Dependency ${name} is already added in requirements.txt.
 - $dep_string: ${name}${version_spec}
+# if file has no eol, add a newline first
+- cl: sed -i -e '$a\' requirements.txt
 - cl: echo "${dep_string}" >> requirements.txt
 - log_i: Successfully added "${dep_string}" as a dependency.
 - use: djangopoc.run_rebuild_instructions

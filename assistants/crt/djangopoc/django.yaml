@@ -117,7 +117,6 @@ run_create_dockerfiles:
     destination: .
     data:
       topdir: $topdir
-      venv: $venv
 
 # DB server Dockerfile and helper script
 - cl: mkdir database

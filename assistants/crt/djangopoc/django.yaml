@@ -96,6 +96,7 @@ run_startproject:
       topdir: $topdir
 # rename the $topdir/djXYprojtemplate directory to $topdir/$topdir
 - cl: mv "$topdir/$djappdir" "$topdir/$topdir"
+- cl: chmod +x "$topdir/manage.py"
 
 # render wsgi conf file
 - jinja_render:

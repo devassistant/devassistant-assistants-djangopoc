@@ -1,2 +1,2 @@
 django>=1.6,<1.7
-psycopg
+psycopg2

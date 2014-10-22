@@ -30,45 +30,39 @@ run:
 
 run_djangopoc_django:
 - docker_check_setup: ""
-# temporary workaround for https://github.com/devassistant/devassistant/issues/289
-#   we need to set default provider to docker in case no other providers are installed (possible)
-- $VDP: VAGRANT_DEFAULT_PROVIDER=docker
 
 # first, stop running containers
 - log_i: Stopping any previously created application containers ...
 # ignore failures when halting, since containers may not be running at all
-- cl: $VDP vagrant halt
+- vagrant_docker: halt
 
 # rebuild images if requested
 - if $recreate:
   - log_i: Destroying any previously built docker images and created containers ...
-  - cl: $VDP vagrant destroy -f
+  - vagrant_docker: destroy -f
   - log_i: Recreating Docker images, this will take a while ...
-  - cl_i: $VDP vagrant reload
+  # this seem to not actually rebuild images because of
+  #  https://github.com/mitchellh/vagrant/issues/3055
+  - vagrant_docker: reload --provision
 
 - log_i: Starting application containers ...
 - if not $recreate:
   - log_i: If this is the first time you're running this assistant, Docker images will be built.
   - log_i: This might take a while ...
-- $vagrant_res, $vagrant_out~:
-  - cl_ip: $VDP vagrant up --provider=docker
-- if not $vagrant_res:
-  - log_e: Failed to start containers, see the above output for errors.
+- $containers~:
+  - vagrant_docker: up
 
 - log_i: You can now go to http://localhost to see your running application.
 
-# get created container names and attach to their output
-- $containers~:
-  - cl: |
-      cat -<<SOMERANDOMEOF | grep "^Bringing machine '[^']*'"
-      $vagrant_out
-      SOMERANDOMEOF
-- $containers~: $(echo "$containers" | sed "s/^Bringing machine '\([^']*\)'.*/\1/")
-- $containers_nice~: $(echo "$containers" | tr "\n" " ")
-- if not $keep_running:
-  - atexit:
-    - for $c word_in $containers_nice:
+- $containers_nice: ""
+- for $c in $containers:
+  - $containers_nice: "$containers_nice, $c"
+  # register containers for shutdown
+  - if not $keep_running:
+    - atexit:
       - log_i: Stopping container $c ...
       - docker_stop: $c
+
+# attach to containers' output
 - log_i: "Attaching to output of containers: $containers_nice ..."
 - docker_attach: $containers

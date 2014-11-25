@@ -62,7 +62,7 @@ run:
     run:
     - log_i: 'To build images and create and start containers, run:'
     - $cwd~: $(pwd)
-    - log_i: 'da modify djangopoc django start -p $cwd'
+    - log_i: 'da tweak djangopoc django start -p $cwd'
 
 # SCM related stuff
 - cl: cp *gitignore .
@@ -73,7 +73,7 @@ run:
 # print instructions for user
 - log_i: 'Django project $topdir in $contdir has been created.'
 - log_i: 'To start development, use:'
-- log_i: 'da modify djangopoc django start -p $contdir/$topdir'
+- log_i: 'da tweak djangopoc django start -p $contdir/$topdir'
 - log_i: 'This will build images and run containers in a proper way.'
 
 

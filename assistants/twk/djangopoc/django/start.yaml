@@ -65,4 +65,6 @@ run_djangopoc_django:
 
 # attach to containers' output
 - log_i: "Attaching to output of containers: $containers_nice ..."
+- log_i: "Hit Ctrl+C any time to interrupt on command line."
+- log_i: "This is uninterruptible in GUI for now, sorry :("
 - docker_attach: $containers
